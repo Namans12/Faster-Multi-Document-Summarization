@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Summarizer</title>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<h1 id="summarizer-heading">Summarizer</h1>
+<form id="upload-form" method="post" enctype="multipart/form-data">
+    <div id="drop-area">
+        <p>Drag and drop your Word or PDF files here, or click to browse.</p>
+        <input type="file" id="fileElem" name="file" multiple accept=".docx,.pdf">
+        <label for="fileElem" style="cursor: pointer;">Browse files</label>
+    </div>
+    <button id="summarize-btn" type="submit">Summarize</button>
+</form>
+
+<!-- Display area for summarized text -->
+<div id="output">{{ summary }}</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

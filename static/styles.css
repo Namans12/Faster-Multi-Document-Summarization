@@ -1,0 +1,50 @@
+body {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f0f0f0;
+    text-align: center; /* Add this line */
+}
+
+h1 {
+    font-size: 32px; /* Increase this value */
+    font-weight: bold;
+    color: #333;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.3s ease-in-out;
+}
+
+#drop-area {
+    width: 300px;
+    height: 200px;
+    border: 2px dashed #aaa;
+    border-radius: 10px;
+    text-align: center;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+}
+
+#summarize-btn {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#summarize-btn:hover {
+    background-color: #45a049;
+}
+
+#output {
+    width: 80%;
+    height: 200px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #aaa;
+    border-radius: 10px;
+    background-color: #fff;
+    overflow-y: scroll;
+}
