@@ -1,73 +1,105 @@
-# Faster Multi-Document Hybrid Summarization Model using Primera and Pegasus
+# Faster Multi-Document Summarization
 
-The Faster Multi-Document Summarization Model is an advanced natural language processing (NLP) model designed to efficiently and accurately generate summaries from multiple documents. By leveraging state-of-the-art techniques in NLP, this model condenses information from various sources into concise summaries, allowing users to quickly grasp the key points of a given topic or set of documents. It focuses on creating a faster and more efficient model for multi-document summarization using the Primera and Pegasus models and allows you to summarize Word and PDF documents, and you can directly add files from your local directory.
+Flask web app that extracts text from PDF and Word documents and generates abstractive summaries using Google's Pegasus model.
+
+> **Scope note:** the project title references a Primera + Pegasus hybrid. The committed implementation uses **Pegasus only** (`google/pegasus-xsum`). The Primera half is not in this repository — see [Current implementation](#current-implementation).
 
 ## Overview
 
-Multi-document summarization is the process of automatically creating a concise and coherent summary from multiple documents on a given topic. Traditional methods for multi-document summarization can be computationally expensive and time-consuming, especially when dealing with a large number of documents. This project addresses these challenges by developing a faster and more efficient approach to multi-document summarization.
+Upload a document, get a summary. Text is extracted from PDFs with PyMuPDF and from Word files with `docx2txt`, then passed to a pre-trained Pegasus model for abstractive summarisation — the model generates new sentences rather than selecting existing ones.
+
+The research goal was a faster multi-document pipeline combining Primera (built for multi-document input) with Pegasus (strong single-document summariser). What shipped is the Pegasus path.
+
+## Current implementation
+
+| Aspect | Intended | Committed |
+|---|---|---|
+| Models | Primera + Pegasus hybrid | `google/pegasus-xsum` only |
+| Input | Multiple documents at once | One document per request |
+| Interface | — | Flask upload form |
+
+`pegasus-xsum` is fine-tuned on XSum, which targets **single-sentence, highly abstractive** summaries. Expect very short output. For longer summaries, `google/pegasus-large` or `google/pegasus-cnn_dailymail` are better-matched checkpoints — changing the string in `app.py` is enough to try them.
 
 ## Features
 
-- **Efficiency:** Utilizes advanced algorithms and optimizations to achieve faster processing speed compared to traditional methods.
-- **Accuracy:** Generates accurate summaries by analyzing and condensing information from multiple documents.
-- **Scalability:** Can handle large volumes of documents efficiently, making it suitable for summarizing extensive datasets or collections of documents.
-- **Summarize Word Documents:** Efficiently summarize multiple Word documents.
-- **Summarize PDF Documents:** Effectively summarize multiple PDF documents.
-- **Local Directory Integration:** Easily add files from your local directory for summarization.
-- **Advanced Summarization Models:** Utilizes the Primera and Pegasus models for high-quality summaries.
+- PDF text extraction via PyMuPDF (`fitz`)
+- Word (`.docx`) text extraction via `docx2txt`
+- Abstractive summarisation with Pegasus
+- Browser upload form — no CLI needed
+- Model loaded once at startup rather than per request
 
-## Usage
+## Tech Stack
 
-1. **Input Documents:** Provide a set of input documents on a given topic or related topics.
-2. **Summarization:** Use the model to generate a summary from the input documents.
-3. **Output:** Obtain a concise summary that captures the key points and important information from the input documents.
+Python · Flask · Hugging Face `transformers` (Pegasus) · PyTorch · PyMuPDF · `docx2txt`
+
+## Prerequisites
+
+- Python 3.8+
+- ~2.5 GB disk for the Pegasus weights, downloaded on first run
+- 8 GB RAM recommended — the model is loaded at import time
 
 ## Installation
 
-### Prerequisites
-- Python 3.7 or higher
-- pip (Python package installer)
-
-## Getting Started
-
-1. **Clone this repository:**
-
-    ```bash
-    git clone https://github.com/YourUsername/Faster-Multi-Document-Summarization-Model.git
-    ```
-
-2. **Install dependencies:**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. **Run the model:** Use the provided scripts or APIs to run the summarization model on your input documents.
-
-4. **View the summaries:** Access the generated summaries and analyze the results.
-
-## Example
-
-```python
-from summarization_model import MultiDocumentSummarizer
-
-# Initialize the summarization model
-summarizer = MultiDocumentSummarizer()
-
-# Provide input documents
-documents = [
-    "Document 1 text...",
-    "Document 2 text...",
-    # Add more documents as needed
-]
-
-# Generate summary
-summary = summarizer.summarize(documents)
-
-# Print or save the summary
-print(summary)
+```bash
+git clone https://github.com/Namans12/Faster-Multi-Document-Summarization.git
+cd Faster-Multi-Document-Summarization
+pip install flask transformers torch pymupdf docx2txt
 ```
 
-## Acknowledgements
-- This project builds upon the advancements in natural language processing and machine learning.
-- Special thanks to the open-source community for providing valuable resources and libraries.
+The first run downloads `google/pegasus-xsum` from Hugging Face and caches it in `~/.cache/huggingface/`.
+
+## Usage
+
+```bash
+python app.py
+```
+
+Open <http://localhost:5000>, upload a PDF or `.docx`, and submit. The summary renders on the same page.
+
+## How it works
+
+```
+upload (PDF | .docx)
+        │
+        ├── PDF   → extract_text_from_pdf()   (PyMuPDF)
+        └── .docx → extract_text_from_word()  (docx2txt)
+        │
+        ▼
+PegasusTokenizer → PegasusForConditionalGeneration → summary
+```
+
+Both extractors are in `app.py`; the `/` route handles `GET` (form) and `POST` (upload and summarise).
+
+## Project Structure
+
+```
+app.py                                     Flask app, extraction, summarisation
+templates/                                 upload form and result page
+static/                                    assets
+Applications - Summary Template.docx       sample Word input
+Research Paper - Summary Template.pdf      sample PDF input
+```
+
+Both sample documents work as test inputs.
+
+## Limitations
+
+- **Single document per request** — despite the name, there is no multi-document merging
+- **Very short summaries** — an artefact of the XSum checkpoint, not a bug
+- **No input length handling** — Pegasus truncates at its maximum input length, so long documents lose their tail silently
+- **Blocking inference** — summarisation runs on the request thread; concurrent uploads queue
+- **No file-size limit** on uploads
+- No tests
+
+## Completing the original design
+
+1. Accept multiple files per request and concatenate or batch them
+2. Add Primera (`allenai/PRIMERA`) for the multi-document path, which is what it was designed for
+3. Chunk long inputs and summarise hierarchically instead of truncating
+4. Move inference to a background worker so the request thread stays free
+
+## Related Repositories
+
+| Repo | Relationship |
+|---|---|
+| [`cogmem-llm`](https://github.com/Namans12/cogmem-llm) | Later, more developed LLM work in this account |
